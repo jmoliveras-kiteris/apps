@@ -1,0 +1,54 @@
+﻿<Window x:Class="Report.MainWindow"
+         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Hunters" Height="300" Width="500"
+        Background="#FFF0F5"
+        WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <!-- Estilo personalizado para el botón deshabilitado -->
+        <Style x:Key="CustomButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#FF69B4"/>
+            <!-- Fondo HotPink -->
+            <Setter Property="Foreground" Value="White"/>
+            <!-- Texto blanco -->
+            <Setter Property="FontSize" Value="16"/>
+            <!-- Tamaño de fuente -->
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="BorderBrush" Value="#C71585"/>
+            <!-- Borde MediumVioletRed -->
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.5"/>
+                    <!-- Solo ajustar la opacidad -->
+                    <Setter Property="BorderBrush" Value="#FFB6C1"/>
+                    <!-- Borde más claro cuando está deshabilitado -->
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+
+
+        <Button x:Name="SelectFileButton" Content="Seleccionar archivo" Grid.Row="0" 
+                Margin="20" Padding="10" HorizontalAlignment="Center"
+                Style="{StaticResource CustomButtonStyle}"
+                Click="SelectFileButton_Click"/>
+       
+        <TextBlock x:Name="FilePathTextBlock" Grid.Row="1" Margin="20" Padding="10"
+                   Text="Ningún archivo seleccionado" TextAlignment="Center" FontSize="14" 
+                   Foreground="#C71585"/>
+
+        <Button x:Name="ProcessButton" Content="Procesar datos" Grid.Row="3" Margin="20" Padding="10" 
+                HorizontalAlignment="Center"
+                Style="{StaticResource CustomButtonStyle}"
+                IsEnabled="False" Click="ProcessButton_Click"/>
+        <!-- Deshabilitado inicialmente -->
+    </Grid>
+</Window>
