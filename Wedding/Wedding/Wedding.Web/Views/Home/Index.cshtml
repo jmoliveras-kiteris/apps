@@ -1,0 +1,72 @@
+﻿@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success text-center">
+        @TempData["Success"]
+    </div>
+}
+
+@{
+    ViewData["Title"] = "Nuestra Boda ❤️";
+}
+
+<div class="text-center mb-4">
+    <a href="/Home/DownloadAll"
+       class="btn btn-outline-dark">
+        ⬇️ Descargar todo en ZIP
+    </a>
+</div>
+
+
+@model List<MediaViewModel>
+
+<div class="text-center mb-4">
+    <h1 class="display-6">📸 Nuestra Boda</h1>
+    <p class="text-muted">Comparte y revive los mejores momentos</p>
+
+    <a href="/Media/Upload" class="btn btn-primary btn-lg">
+        ➕ Subir fotos o vídeos
+    </a>
+</div>
+
+<div class="row g-4">
+    @foreach (var item in Model)
+    {
+        <div class="col-6 col-md-4 col-lg-3">
+            <div class="gallery-item"
+                 data-url="@item.Url"
+                 data-type="@item.MediaType">
+
+                @if (item.MediaType == "photo")
+                {
+                    <img src="@item.Url" loading="lazy" />
+                }
+                else
+                {
+                    <video muted></video>
+                    <span class="video-badge">🎥 Vídeo</span>
+                }
+                <a href="/Home/Download?blobName=@item.BlobName"
+                   class="btn btn-sm btn-outline-secondary mt-2 w-100">
+                    ⬇️ Descargar
+                </a>
+
+            </div>
+        </div>
+    }
+</div>
+
+<div class="modal fade" id="mediaModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content bg-dark">
+            <div class="modal-body text-center">
+                <div id="modalContent"></div>
+
+                <a id="downloadBtn"
+                   class="btn btn-light mt-3"
+                   download>
+                    ⬇️ Descargar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
