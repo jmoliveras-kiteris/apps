@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="JiraExporter.Web/JiraExporter.Web.csproj" />
+  <Project Path="JiraExporter/JiraExporter.csproj" />
+</Solution>
