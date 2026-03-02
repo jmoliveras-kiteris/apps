@@ -1,6 +1,13 @@
 using JiraExporter.Web.Models;
 using JiraExporter.Web.Services;
 using Microsoft.Extensions.Caching.Memory;
+using System.Globalization;
+
+// Pin culture so decimal/date formatting is identical on every server (local, Azure, etc.)
+// Without this, Azure App Service defaults to en-US, giving "8.50" instead of "8,50" in CSVs.
+var culture = CultureInfo.GetCultureInfo("es-ES");
+CultureInfo.DefaultThreadCurrentCulture   = culture;
+CultureInfo.DefaultThreadCurrentUICulture = culture;
 
 var builder = WebApplication.CreateBuilder(args);
 
