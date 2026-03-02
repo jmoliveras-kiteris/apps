@@ -26,4 +26,7 @@ public class DashboardViewModel
     public string FilterWorker { get; set; } = string.Empty;
     public string FilterTicket { get; set; } = string.Empty;
     public string FilterComment { get; set; } = string.Empty;
+
+    // Token echoed back as a cookie so the JS export spinner knows the download started
+    public string DownloadToken { get; set; } = string.Empty;
 }

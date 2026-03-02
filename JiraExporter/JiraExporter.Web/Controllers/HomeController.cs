@@ -55,7 +55,20 @@ public class HomeController : Controller
             .ToList();
 
         var csvBytes = await _jiraService.GenerateCsvAsync(filtered);
-        
+
+        // Signal the browser that the file is ready — the JS export spinner polls for this cookie.
+        var token = model.DownloadToken;
+        if (!string.IsNullOrEmpty(token))
+        {
+            Response.Cookies.Append(token, "1", new Microsoft.AspNetCore.Http.CookieOptions
+            {
+                MaxAge  = TimeSpan.FromMinutes(1),
+                Path    = "/",
+                Secure  = false,   // must be readable by JS
+                HttpOnly = false
+            });
+        }
+
         var fileName = $"jira-worklogs_{model.DateFrom:yyyyMMdd}_{model.DateTo:yyyyMMdd}.csv";
         return File(csvBytes, "text/csv", fileName);
     }

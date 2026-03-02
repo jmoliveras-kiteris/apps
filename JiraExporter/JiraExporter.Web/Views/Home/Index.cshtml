@@ -7,8 +7,8 @@
 <div id="globalLoader" class="loader-overlay d-none">
     <div class="loader-content text-center">
         <div class="spinner-grow text-info mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
-        <h4 class="text-white fw-bold">PROCESANDO INCURRIDOS</h4>
-        <p class="text-white-50 small x-small tracking-widest text-uppercase">Obteniendo información...</p>
+        <h4 id="loaderTitle" class="text-white fw-bold">PROCESANDO INCURRIDOS</h4>
+        <p id="loaderSubtitle" class="text-white-50 small x-small tracking-widest text-uppercase">Obteniendo información...</p>
     </div>
 </div>
 
@@ -320,25 +320,51 @@
     }
 
     function exportData() {
+        // Update loader text to reflect the export action
+        document.getElementById('loaderTitle').textContent    = 'EXPORTANDO A CSV';
+        document.getElementById('loaderSubtitle').textContent = 'Preparando archivo...';
         showLoader();
+
+        // Unique token so we know exactly which download to wait for
+        const token = 'dl_' + Date.now();
+
         const form = document.getElementById('dashboardForm');
         const virtualForm = document.createElement('form');
         virtualForm.method = 'POST';
         virtualForm.action = '@Url.Action("Export", "Home")';
         new FormData(form).forEach((value, key) => {
             const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = key;
+            input.type  = 'hidden';
+            input.name  = key;
             input.value = value;
             virtualForm.appendChild(input);
         });
+        // Pass the token to the server so it can echo it back as a cookie
+        const tokenInput = document.createElement('input');
+        tokenInput.type  = 'hidden';
+        tokenInput.name  = 'downloadToken';
+        tokenInput.value = token;
+        virtualForm.appendChild(tokenInput);
+
         document.body.appendChild(virtualForm);
         virtualForm.submit();
         document.body.removeChild(virtualForm);
-        
-        setTimeout(() => {
-            document.getElementById('globalLoader').classList.add('d-none');
-        }, 3000);
+
+        // Poll for the download cookie — hide spinner only when the file arrives
+        const poll = setInterval(() => {
+            if (document.cookie.split(';').some(c => c.trim().startsWith(token + '='))) {
+                clearInterval(poll);
+                // Clear the cookie
+                document.cookie = token + '=; Max-Age=0; path=/';
+                // Restore loader text and hide
+                document.getElementById('loaderTitle').textContent    = 'PROCESANDO INCURRIDOS';
+                document.getElementById('loaderSubtitle').textContent = 'Obteniendo información...';
+                document.getElementById('globalLoader').classList.add('d-none');
+            }
+        }, 300);
+
+        // Safety fallback — hide after 60s regardless
+        setTimeout(() => { clearInterval(poll); document.getElementById('globalLoader').classList.add('d-none'); }, 60000);
     }
 
     document.addEventListener('DOMContentLoaded', function() {
