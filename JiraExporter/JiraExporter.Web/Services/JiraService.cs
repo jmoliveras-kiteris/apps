@@ -193,14 +193,30 @@ public class JiraService
             var started = DateTime.Parse(wl.StartedStr);
             if (started < from || started > toTimestamp) continue;
 
-            // Match by Jira author (email preferred, then display name, then diacritic-tolerant)
+            // Match by Jira author:
+            // 1. Email (most reliable)
+            // 2. Exact display name
+            // 3. Diacritic-tolerant exact  ("José García" in Jira == "Jose Garcia" in config)
+            // 4. All config-name words present in Jira name
+            //    ("John Smith" matches "John Smith Doe",
+            //     "ana garcia"  matches "ana garcia lopez")
+            var displayNorm = RemoveDiacritics(wl.AuthorDisplay).ToLowerInvariant();
             var matchedUser = selectedUsers.FirstOrDefault(u =>
-                string.Equals(u.Email, wl.AuthorEmail, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(u.Name,  wl.AuthorDisplay, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(RemoveDiacritics(u.Name), RemoveDiacritics(wl.AuthorDisplay), StringComparison.OrdinalIgnoreCase));
+            {
+                if (string.Equals(u.Email, wl.AuthorEmail, StringComparison.OrdinalIgnoreCase))
+                    return true;
+                if (string.Equals(u.Name, wl.AuthorDisplay, StringComparison.OrdinalIgnoreCase))
+                    return true;
+                var configNorm = RemoveDiacritics(u.Name).ToLowerInvariant();
+                if (string.Equals(configNorm, displayNorm, StringComparison.OrdinalIgnoreCase))
+                    return true;
+                var parts = configNorm.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                return parts.Length >= 2 && parts.All(p => displayNorm.Contains(p));
+            });
 
-            // Fallback: shared account (e.g. "Kiteris Wiki SRE") — worker name is in the comment.
-            // e.g. comment = "Rodrigo Díaz" → match against selected users.
+            // Fallback: shared service accounts log work on behalf of individuals
+            // — the real worker name is in the comment text.
+            // e.g. comment = "John Smith" → match against selected users.
             if (matchedUser == null && wl.WorkerInComment != null)
             {
                 var workerNorm = RemoveDiacritics(wl.WorkerInComment).ToLowerInvariant();

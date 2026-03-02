@@ -160,9 +160,9 @@ static bool IsTargetUser(string? email, string? name, string? worker, string[] t
         // Exact display name match
         if (name != null && string.Equals(name, t, StringComparison.OrdinalIgnoreCase)) return true;
 
-        // Smarter name match: "daniel.lopez@domain" -> check if name or worker contains "daniel" and "lopez"
-        var emailNamePart = t.Split('@')[0]; // "daniel.lopez" or "Antonio Parras"
-        var parts = emailNamePart.Split('.', '-', '_', ' '); // ["daniel", "lopez"] or ["Antonio", "Parras"]
+        // Smarter name match: "john.smith@domain" -> check if name or worker contains "john" and "smith"
+        var emailNamePart = t.Split('@')[0]; // "john.smith" or "John Smith"
+        var parts = emailNamePart.Split('.', '-', '_', ' '); // ["john", "smith"] or ["John", "Smith"]
         
         if (MatchParts(name, parts) || MatchParts(worker, parts)) return true;
     }
