@@ -6,6 +6,7 @@ public class WorklogItem
     public string AccountName { get; set; } = string.Empty;
     public string WorkerInComment { get; set; } = string.Empty;
     public string IssueKey { get; set; } = string.Empty;
+    public string Epic { get; set; } = string.Empty;
     public double Hours { get; set; }
     public string Comment { get; set; } = string.Empty;
     public string JiraUrl { get; set; } = string.Empty;
@@ -25,6 +26,7 @@ public class DashboardViewModel
     public string FilterUser { get; set; } = string.Empty;
     public string FilterWorker { get; set; } = string.Empty;
     public string FilterTicket { get; set; } = string.Empty;
+    public string FilterEpic { get; set; } = string.Empty;
     public string FilterComment { get; set; } = string.Empty;
 
     // Token echoed back as a cookie so the JS export spinner knows the download started

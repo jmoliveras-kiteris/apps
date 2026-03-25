@@ -1,4 +1,4 @@
-﻿@model JiraExporter.Web.Models.DashboardViewModel
+@model JiraExporter.Web.Models.DashboardViewModel
 @{
     ViewData["Title"] = "Incurridos Jira - Dashboard";
 }
@@ -108,7 +108,11 @@
                                     <div class="d-flex align-items-center mb-1">TICKET <i class="bi bi-arrow-down-up ms-2 x-small opacity-50"></i></div>
                                     <input form="dashboardForm" asp-for="FilterTicket" class="form-control form-control-sm header-filter" placeholder="ID..." />
                                 </th>
-                                <th class="text-center sortable pointer" onclick="sortTable(4)" style="width: 120px;">
+                                <th class="sortable pointer" onclick="sortTable(4)" style="width: 140px;">
+                                    <div class="d-flex align-items-center mb-1">EPICA <i class="bi bi-arrow-down-up ms-2 x-small opacity-50"></i></div>
+                                    <input form="dashboardForm" asp-for="FilterEpic" class="form-control form-control-sm header-filter" placeholder="ID..." />
+                                </th>
+                                <th class="text-center sortable pointer" onclick="sortTable(5)" style="width: 120px;">
                                     <div class="d-flex align-items-center justify-content-center">HORAS <i class="bi bi-arrow-down-up ms-2 x-small opacity-50"></i></div>
                                 </th>
                                 <th class="pe-4" style="width: auto;">
@@ -121,7 +125,7 @@
                             @if (!Model.Worklogs.Any())
                             {
                                 <tr>
-                                    <td colspan="6" class="text-center py-5 border-0">
+                                    <td colspan="7" class="text-center py-5 border-0">
                                         <div class="py-5">
                                             <i class="bi bi-inbox fs-1 text-muted opacity-25"></i>
                                             <p class="text-muted mt-3">No se encontraron registros que coincidan.</p>
@@ -163,6 +167,18 @@
                                         <a href="@wl.JiraUrl" target="_blank" class="jira-pill-modern">
                                             <i class="bi bi-link-45deg"></i> <span class="fw-black">@wl.IssueKey</span>
                                         </a>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(wl.Epic))
+                                        {
+                                            <a href="@(wl.JiraUrl.Replace(wl.IssueKey, wl.Epic))" target="_blank" class="jira-pill-modern bg-secondary-subtle border-secondary-subtle color-secondary">
+                                                <i class="bi bi-bookmarks"></i> <span class="fw-bold">@wl.Epic</span>
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted opacity-20 small">—</span>
+                                        }
                                     </td>
                                     <td>
                                         <div class="text-center">
@@ -285,8 +301,8 @@
             let x = a.getElementsByTagName("TD")[n].innerText.trim();
             let y = b.getElementsByTagName("TD")[n].innerText.trim();
             
-            // Numeric sort for Hours column (index 4)
-            if (n === 4) {
+            // Numeric sort for Hours column (index 5)
+            if (n === 5) {
                 return (parseFloat(x.replace(',', '.')) || 0) - (parseFloat(y.replace(',', '.')) || 0);
             }
             
@@ -382,6 +398,7 @@
             const userF = document.getElementById('FilterUser').value.toLowerCase();
             const workerF = document.getElementById('FilterWorker').value.toLowerCase();
             const ticketF = document.getElementById('FilterTicket').value.toLowerCase();
+            const epicF = document.getElementById('FilterEpic').value.toLowerCase();
             const commentF = document.getElementById('FilterComment').value.toLowerCase();
 
             const rows = document.querySelectorAll('#worklogTable tbody tr');
@@ -394,18 +411,20 @@
                 const uText = row.cells[1].innerText.toLowerCase();
                 const wText = row.cells[2].innerText.toLowerCase();
                 const tText = row.cells[3].innerText.toLowerCase();
-                const cText = row.cells[5].innerText.toLowerCase();
+                const eText = row.cells[4].innerText.toLowerCase();
+                const cText = row.cells[6].innerText.toLowerCase();
 
                 const isVisible = uText.includes(userF) && 
                                   wText.includes(workerF) && 
                                   tText.includes(ticketF) && 
+                                  eText.includes(epicF) &&
                                   cText.includes(commentF);
 
                 row.style.display = isVisible ? '' : 'none';
                 
                 if (isVisible) {
                     vCount++;
-                    const hVal = parseFloat(row.cells[4].querySelector('.hour-value').innerText.replace(',', '.')) || 0;
+                    const hVal = parseFloat(row.cells[5].querySelector('.hour-value').innerText.replace(',', '.')) || 0;
                     vHours += hVal;
                 }
             });

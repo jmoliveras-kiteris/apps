@@ -14,11 +14,11 @@ public class JiraService
     private readonly JiraSettings _settings;
     private readonly IMemoryCache _cache;
 
-    // issueId → "VOL-1234", persists for the app lifetime (singleton)
-    private readonly ConcurrentDictionary<string, string> _issueKeyCache = new();
+    // issueId → { Key: "VOL-1234", Epic: "VOL-EPIC" }, persists for the app lifetime (singleton)
+    private readonly ConcurrentDictionary<string, IssueData> _issueKeyCache = new();
 
     // issueId → in-flight fetch Task — deduplicates concurrent callers
-    private readonly ConcurrentDictionary<string, Task<string?>> _issueKeyTasks = new();
+    private readonly ConcurrentDictionary<string, Task<IssueData?>> _issueKeyTasks = new();
 
     // Per-cacheKey semaphore — prevents cache stampede under concurrent requests
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new();
@@ -79,10 +79,11 @@ public class JiraService
             // Replace numeric IDs with resolved keys
             foreach (var item in result)
             {
-                if (_issueKeyCache.TryGetValue(item.IssueKey, out var key))
+                if (_issueKeyCache.TryGetValue(item.IssueKey, out var issueData))
                 {
-                    item.JiraUrl  = $"{_settings.BaseUrl}/browse/{key}";
-                    item.IssueKey = key;
+                    item.JiraUrl  = $"{_settings.BaseUrl}/browse/{issueData.Key}";
+                    item.IssueKey = issueData.Key;
+                    item.Epic     = issueData.Epic ?? "";
                 }
             }
 
@@ -263,16 +264,43 @@ public class JiraService
 
             var task = _issueKeyTasks.GetOrAdd(issueId, id => Task.Run(async () =>
             {
-                var url  = $"{_settings.BaseUrl}/rest/api/3/issue/{id}?fields=key";
+                // We fetch both the key and the parent (which is often the Epic)
+                // "customfield_10001" is the legacy Epic Link, "parent" is the current standard.
+                // Requesting both to be safe.
+                var url  = $"{_settings.BaseUrl}/rest/api/3/issue/{id}?fields=key,parent,customfield_10001";
                 var resp = await CallJiraAsync(() => _http.GetStringAsync(url));
-                if (resp == null) return (string?)null;
+                if (resp == null) return null;
                 using var doc = JsonDocument.Parse(resp);
-                return doc.RootElement.SafeGetString("key");
+                var key = doc.RootElement.SafeGetString("key");
+                if (key == null) return null;
+
+                string? epic = null;
+                if (doc.RootElement.TryGetProperty("fields", out var fields))
+                {
+                    // 1. Try modern "parent" (Epic or Task parent)
+                    if (fields.TryGetProperty("parent", out var parent))
+                    {
+                        epic = parent.SafeGetString("key");
+                    }
+                    
+                    // 2. Try legacy Epic Link if parent didn't work
+                    if (string.IsNullOrEmpty(epic) && fields.TryGetProperty("customfield_10001", out var epicLink))
+                    {
+                        // Some Jira configurations use different custom fields for epics, 
+                        // but 10001 is common.
+                        if (epicLink.ValueKind == JsonValueKind.String)
+                            epic = epicLink.GetString();
+                        else if (epicLink.ValueKind == JsonValueKind.Object)
+                            epic = epicLink.SafeGetString("key");
+                    }
+                }
+
+                return new IssueData(key, epic);
             }));
 
-            var key = await task;
-            if (key != null) _issueKeyCache.TryAdd(issueId, key);
-            _issueKeyTasks.TryRemove(new KeyValuePair<string, Task<string?>>(issueId, task));
+            var result = await task;
+            if (result != null) _issueKeyCache.TryAdd(issueId, result);
+            _issueKeyTasks.TryRemove(new KeyValuePair<string, Task<IssueData?>>(issueId, task));
         });
     }
 
@@ -280,9 +308,9 @@ public class JiraService
 
     public async Task<byte[]> GenerateCsvAsync(List<WorklogItem> items)
     {
-        var rows = new List<string> { "Fecha;Cuenta;TrabajadorEnComentario;Ticket;Horas;Comentario" };
+        var rows = new List<string> { "Fecha;Cuenta;TrabajadorEnComentario;Ticket;Epica;Horas;Comentario" };
         foreach (var item in items)
-            rows.Add($"{item.Started:yyyy-MM-dd};{Escape(item.AccountName)};{Escape(item.WorkerInComment)};{item.IssueKey};{item.Hours:F2};{Escape(item.Comment)}");
+            rows.Add($"{item.Started:yyyy-MM-dd};{Escape(item.AccountName)};{Escape(item.WorkerInComment)};{item.IssueKey};{item.Epic};{item.Hours:F2};{Escape(item.Comment)}");
 
         return Encoding.UTF8.GetPreamble()
             .Concat(Encoding.UTF8.GetBytes(string.Join(Environment.NewLine, rows)))
@@ -368,6 +396,9 @@ public static class JsonExtensions
     public static string? SafeGetString(this JsonElement element, string propertyName) =>
         element.TryGetProperty(propertyName, out var p) ? p.GetString() : null;
 }
+
+/// <summary>Issue key and epic link.</summary>
+internal sealed record IssueData(string Key, string? Epic);
 
 /// <summary>Snapshot of a raw Jira worklog with all fields pre-extracted.</summary>
 internal sealed record RawWorklog(

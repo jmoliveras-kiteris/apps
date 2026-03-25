@@ -50,6 +50,8 @@ public class HomeController : Controller
                        w.WorkerInComment.Contains(model.FilterWorker, StringComparison.OrdinalIgnoreCase))
             .Where(w => string.IsNullOrEmpty(model.FilterTicket) || 
                        w.IssueKey.Contains(model.FilterTicket, StringComparison.OrdinalIgnoreCase))
+            .Where(w => string.IsNullOrEmpty(model.FilterEpic) || 
+                       w.Epic.Contains(model.FilterEpic, StringComparison.OrdinalIgnoreCase))
             .Where(w => string.IsNullOrEmpty(model.FilterComment) || 
                        w.Comment.Contains(model.FilterComment, StringComparison.OrdinalIgnoreCase))
             .ToList();
