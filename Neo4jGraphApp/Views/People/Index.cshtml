@@ -1,0 +1,81 @@
+@model List<Neo4jGraphApp.Models.Person>
+@{
+    ViewData["Title"] = "Directorio de Personas";
+}
+
+<div class="row mb-4 align-items-center">
+    <div class="col-md-8">
+        <h1 class="fw-bold mb-1" style="font-weight: 800; font-size: 2.2rem; background: linear-gradient(to right, #fff, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            Directorio de Personas (:Person)
+        </h1>
+        <p class="text-secondary" style="font-size: 1rem;">
+            Listado completo de nodos de personas en tu base de datos de grafos.
+        </p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <a asp-action="Create" class="btn btn-premium btn-premium-purple shadow">
+            <i class="bi bi-person-plus-fill"></i>Crear Persona
+        </a>
+    </div>
+</div>
+
+<div class="glass-panel p-4 mb-4">
+    @if (Model.Count == 0)
+    {
+        <div class="text-center py-5 text-secondary">
+            <i class="bi bi-people" style="font-size: 3.5rem; opacity: 0.4;"></i>
+            <h4 class="mt-3 text-light">No hay personas registradas</h4>
+            <p style="font-size: 0.95rem;">Empieza agregando perfiles profesionales a tu base de datos Neo4j.</p>
+            <a asp-action="Create" class="btn btn-premium btn-premium-purple mt-2">
+                Crear primer perfil
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var person in Model)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="glass-panel glass-panel-hover h-100 p-3 d-flex flex-column" style="background: rgba(255, 255, 255, 0.02); border-color: rgba(255,255,255,0.05);">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <div class="profile-avatar-circle">
+                                @(string.IsNullOrEmpty(person.Name) ? "?" : person.Name[0].ToString().ToUpper())
+                            </div>
+                            <div>
+                                <h5 class="fw-bold mb-0 text-light" style="font-size: 1.1rem;">@person.Name</h5>
+                                <p class="text-secondary mb-0" style="font-size: 0.8rem; font-weight: 500;">
+                                    @person.Title
+                                </p>
+                            </div>
+                        </div>
+
+                        <p class="text-secondary mb-4 flex-grow-1" style="font-size: 0.85rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5;">
+                            @(string.IsNullOrEmpty(person.Bio) ? "Sin biografía disponible para este perfil profesional." : person.Bio)
+                        </p>
+
+                        <div class="d-flex justify-content-between align-items-center border-top border-secondary pt-3 mt-auto">
+                            <span class="text-secondary" style="font-size: 0.75rem;">
+                                <i class="bi bi-envelope me-1"></i>@person.Email
+                            </span>
+                            
+                            <div class="d-flex gap-2">
+                                <a asp-action="Details" asp-route-id="@person.Id" class="btn btn-sm btn-premium btn-premium-outline px-2 py-1" style="font-size: 0.75rem;">
+                                    <i class="bi bi-eye"></i> Detalle
+                                </a>
+                                <a asp-action="Edit" asp-route-id="@person.Id" class="btn btn-sm btn-premium btn-premium-outline px-2 py-1 text-warning" style="font-size: 0.75rem; border-color: rgba(255, 193, 7, 0.25);">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form asp-action="Delete" asp-route-id="@person.Id" method="post" onsubmit="return confirm('¿Estás seguro de que deseas eliminar permanentemente a esta persona? Esto desvinculará automáticamente todas sus relaciones en el grafo.');" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-premium btn-premium-outline px-2 py-1 text-danger" style="font-size: 0.75rem; border-color: rgba(220, 53, 69, 0.25);">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

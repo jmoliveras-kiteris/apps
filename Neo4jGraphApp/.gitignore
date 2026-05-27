@@ -1,0 +1,48 @@
+## Core build outputs
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+bld/
+[Bb]uild/
+
+## Visual Studio files
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+.metadata/
+
+## Visual Studio Code files
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/
+
+## Rider / JetBrains
+.idea/
+
+## User-specific files
+*.rsuser
+*.suo
+*.user
+*.user-r
+*.sqlproj.user
+*.userprefs
+
+## OS files
+.DS_Store
+Thumbs.db
+
+## ASP.NET Core Development settings (avoid committing local dev secrets)
+appsettings.Development.json
+
+## Publish output
+/publish/
+/out/

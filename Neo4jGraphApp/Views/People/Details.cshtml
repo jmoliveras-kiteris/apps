@@ -1,0 +1,230 @@
+@model Neo4jGraphApp.Models.Person
+@{
+    ViewData["Title"] = "Perfil de " + Model.Name;
+}
+
+<div class="d-flex align-items-center mb-4 gap-2">
+    <a asp-action="Index" class="btn btn-sm btn-premium btn-premium-outline">
+        <i class="bi bi-arrow-left"></i> Directorio
+    </a>
+    <span class="text-secondary">| Detalles del Nodo</span>
+</div>
+
+<div class="row g-4">
+    <!-- Columna Izquierda: Perfil de la Persona -->
+    <div class="col-lg-4">
+        <div class="glass-panel text-center p-4 h-100">
+            <div class="d-flex flex-column align-items-center">
+                <div class="profile-avatar-large">
+                    @(string.IsNullOrEmpty(Model.Name) ? "?" : Model.Name[0].ToString().ToUpper())
+                </div>
+                
+                <h2 class="fw-bold mb-1 text-light">@Model.Name</h2>
+                <span class="badge rounded-pill bg-purple-glow text-purple px-3 py-2 border border-purple mb-3" style="color: #c084fc; border-color: rgba(139, 92, 246, 0.4); background: rgba(139, 92, 246, 0.08);">
+                    @Model.Title
+                </span>
+                
+                <div class="text-secondary mb-4 w-100 border-top border-bottom border-secondary py-3 d-flex flex-column gap-2" style="font-size: 0.9rem; text-align: left;">
+                    <div>
+                        <i class="bi bi-envelope-fill text-purple me-2"></i><strong>Correo:</strong> @Model.Email
+                    </div>
+                    <div>
+                        <i class="bi bi-key-fill text-purple me-2"></i><strong>ID Nodo:</strong> <small class="text-secondary font-monospace">@Model.Id</small>
+                    </div>
+                </div>
+
+                <div class="w-100 text-start mb-4">
+                    <h5 class="fw-semibold text-light mb-2" style="font-size: 0.95rem;">Biografía</h5>
+                    <p class="text-secondary" style="font-size: 0.88rem; line-height: 1.6;">
+                        @Model.Bio
+                    </p>
+                </div>
+
+                <div class="d-grid gap-2 w-100 mt-auto">
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-premium btn-premium-purple justify-content-center">
+                        <i class="bi bi-pencil-fill"></i> Editar Perfil
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Columna Derecha: Gestión de Habilidades y Conexiones en el Grafo -->
+    <div class="col-lg-8">
+        <div class="d-flex flex-column gap-4">
+            
+            <!-- 1. GESTIÓN DE HABILIDADES (:Person)-[:HAS_SKILL]->(:Skill) -->
+            <div class="glass-panel p-4">
+                <h3 class="fw-bold mb-1 text-light" style="font-size: 1.3rem;">
+                    <i class="bi bi-gem me-2 text-emerald"></i>Habilidades Profesionales
+                </h3>
+                <p class="text-secondary mb-3" style="font-size: 0.85rem;">
+                    Relaciones <code>:HAS_SKILL</code> salientes desde este nodo hacia nodos de habilidad.
+                </p>
+
+                <!-- Listado de Habilidades Existentes -->
+                <div class="d-flex flex-wrap gap-2 mb-4">
+                    @if (Model.Skills.Count == 0)
+                    {
+                        <div class="text-secondary py-3 w-100 text-center border border-dashed rounded border-secondary" style="background: rgba(0,0,0,0.15);">
+                            <i class="bi bi-gem mb-2" style="font-size: 1.5rem; opacity: 0.5;"></i>
+                            <p class="mb-0" style="font-size: 0.85rem;">Este perfil no tiene habilidades asociadas en el grafo.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var skill in Model.Skills)
+                        {
+                            <span class="skill-tag">
+                                @skill.SkillName
+                                <span class="proficiency-badge @skill.Proficiency.ToLower()">@skill.Proficiency</span>
+                                
+                                <!-- Formulario de desasociación -->
+                                <form asp-action="RemoveSkill" method="post" class="d-inline ms-1">
+                                    <input type="hidden" name="personId" value="@Model.Id" />
+                                    <input type="hidden" name="skillId" value="@skill.SkillId" />
+                                    <button type="submit" class="border-0 bg-transparent text-danger p-0" title="Eliminar relación de habilidad" style="line-height: 0;">
+                                        <i class="bi bi-x-circle-fill" style="font-size: 0.85rem;"></i>
+                                    </button>
+                                </form>
+                            </span>
+                        }
+                    }
+                </div>
+
+                <!-- Formulario para agregar relación HAS_SKILL -->
+                <div class="border-top border-secondary pt-3">
+                    <h5 class="fw-semibold text-light mb-3" style="font-size: 0.95rem;">Asociar Nueva Habilidad</h5>
+                    <form asp-action="AddSkill" method="post" class="row g-2 align-items-end">
+                        <input type="hidden" name="personId" value="@Model.Id" />
+                        
+                        <div class="col-md-5">
+                            <label class="form-label text-secondary small fw-medium mb-1">Selecciona Habilidad</label>
+                            @if (((List<Skill>)ViewBag.AvailableSkills).Count == 0)
+                            {
+                                <select class="form-control form-control-premium" disabled>
+                                    <option>No hay más habilidades disponibles</option>
+                                </select>
+                            }
+                            else
+                            {
+                                <select name="skillId" class="form-control form-control-premium" required>
+                                    <option value="">-- Selecciona Habilidad --</option>
+                                    @foreach (var s in ViewBag.AvailableSkills)
+                                    {
+                                        <option value="@s.Id">@s.Name (@s.Category)</option>
+                                    }
+                                </select>
+                            }
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label text-secondary small fw-medium mb-1">Proficiencia</label>
+                            <select name="proficiency" class="form-control form-control-premium">
+                                <option value="Beginner">Principiante (Beginner)</option>
+                                <option value="Intermediate" selected>Intermedio (Intermediate)</option>
+                                <option value="Expert">Experto (Expert)</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3 d-grid">
+                            <button type="submit" class="btn btn-premium btn-premium-purple" @(((List<Skill>)ViewBag.AvailableSkills).Count == 0 ? "disabled" : "")>
+                                <i class="bi bi-plus-circle"></i> Asociar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 2. GESTIÓN DE CONEXIONES (:Person)-[:KNOWS]-(:Person) -->
+            <div class="glass-panel p-4">
+                <h3 class="fw-bold mb-1 text-light" style="font-size: 1.3rem;">
+                    <i class="bi bi-share-fill me-2 text-cyan"></i>Conexiones Profesionales (Grafo)
+                </h3>
+                <p class="text-secondary mb-3" style="font-size: 0.85rem;">
+                    Relaciones <code>:KNOWS</code> bidireccionales con otros nodos <code>:Person</code>.
+                </p>
+
+                <!-- Listado de Conexiones -->
+                <div class="row g-3 mb-4" style="max-height: 250px; overflow-y: auto;">
+                    @if (Model.Connections.Count == 0)
+                    {
+                        <div class="col-12">
+                            <div class="text-secondary py-3 text-center border border-dashed rounded border-secondary" style="background: rgba(0,0,0,0.15);">
+                                <i class="bi bi-link-45deg mb-2" style="font-size: 1.5rem; opacity: 0.5;"></i>
+                                <p class="mb-0" style="font-size: 0.85rem;">Este perfil no tiene conexiones establecidas.</p>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var friend in Model.Connections)
+                        {
+                            <div class="col-md-6">
+                                <div class="glass-panel p-2 d-flex align-items-center justify-content-between border-secondary" style="background: rgba(255,255,255,0.01);">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="profile-avatar-circle" style="width: 32px; height: 32px; font-size: 0.8rem; box-shadow: none;">
+                                            @(string.IsNullOrEmpty(friend.PersonName) ? "?" : friend.PersonName[0].ToString().ToUpper())
+                                        </div>
+                                        <div>
+                                            <a asp-action="Details" asp-route-id="@friend.PersonId" class="fw-bold text-light text-decoration-none hover-purple" style="font-size: 0.88rem;">
+                                                @friend.PersonName
+                                            </a>
+                                            <div class="text-secondary" style="font-size: 0.72rem;">
+                                                Conocidos desde: @friend.Since.ToString("dd/MM/yyyy")
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Eliminar Conexión -->
+                                    <form asp-action="RemoveConnection" method="post" onsubmit="return confirm('¿Estás seguro de que deseas desconectar a estas personas en tu grafo?');">
+                                        <input type="hidden" name="personId" value="@Model.Id" />
+                                        <input type="hidden" name="friendId" value="@friend.PersonId" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger border-0 rounded-circle" title="Desconectar">
+                                            <i class="bi bi-x-lg" style="font-size: 0.8rem;"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+
+                <!-- Formulario para agregar relación KNOWS -->
+                <div class="border-top border-secondary pt-3">
+                    <h5 class="fw-semibold text-light mb-3" style="font-size: 0.95rem;">Establecer Nueva Conexión</h5>
+                    <form asp-action="AddConnection" method="post" class="row g-2 align-items-end">
+                        <input type="hidden" name="personId" value="@Model.Id" />
+                        
+                        <div class="col-md-9">
+                            <label class="form-label text-secondary small fw-medium mb-1">Selecciona Persona para conectar</label>
+                            @if (((List<Person>)ViewBag.AvailablePeople).Count == 0)
+                            {
+                                <select class="form-control form-control-premium" disabled>
+                                    <option>No hay más personas disponibles en la red</option>
+                                </select>
+                            }
+                            else
+                            {
+                                <select name="friendId" class="form-control form-control-premium" required>
+                                    <option value="">-- Selecciona Persona --</option>
+                                    @foreach (var p in ViewBag.AvailablePeople)
+                                    {
+                                        <option value="@p.Id">@p.Name (@p.Title)</option>
+                                    }
+                                </select>
+                            }
+                        </div>
+
+                        <div class="col-md-3 d-grid">
+                            <button type="submit" class="btn btn-premium btn-premium-purple" @(((List<Person>)ViewBag.AvailablePeople).Count == 0 ? "disabled" : "")>
+                                <i class="bi bi-link-45deg"></i> Conectar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

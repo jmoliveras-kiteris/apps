@@ -1,0 +1,180 @@
+@model Neo4jGraphApp.Models.CustomQueryViewModel
+@{
+    ViewData["Title"] = "Cypher Playground Sandbox";
+}
+
+<div class="row mb-4 align-items-center">
+    <div class="col-12">
+        <h1 class="fw-bold mb-1" style="font-weight: 800; font-size: 2.2rem; background: linear-gradient(to right, #fff, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            Cypher Sandbox & Playground
+        </h1>
+        <p class="text-secondary" style="font-size: 1rem;">
+            Escribe y ejecuta consultas libres en **Cypher** (el lenguaje de consultas de grafos de Neo4j) directamente sobre tu base de datos en Azure.
+        </p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Panel Superior: Editor de Consultas Cypher -->
+    <div class="col-12">
+        <div class="glass-panel p-4">
+            <div class="row g-4">
+                
+                <!-- Columna 1: Editor y Ejecutor -->
+                <div class="col-lg-8">
+                    <h3 class="fw-bold mb-3 text-light" style="font-size: 1.15rem;">
+                        <i class="bi bi-terminal-fill text-purple me-2"></i>Consola Cypher
+                    </h3>
+                    
+                    <form asp-action="Index" method="post" class="form-premium">
+                        <div class="mb-3">
+                            <textarea id="cypher-editor" asp-for="Query" rows="6" class="form-control form-control-premium font-monospace text-light" style="font-size: 0.92rem; background-color: #060914 !important; border-color: rgba(139, 92, 246, 0.2) !important; line-height: 1.5; letter-spacing: 0.2px; font-family: 'Consolas', 'Courier New', monospace;"></textarea>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-secondary" style="font-size: 0.8rem;">
+                                <i class="bi bi-info-circle me-1 text-purple"></i>Las consultas son de lectura y se ejecutan en tiempo real.
+                            </span>
+                            <button type="submit" class="btn btn-premium btn-premium-purple px-4 shadow">
+                                <i class="bi bi-play-fill" style="font-size: 1.1rem;"></i> Ejecutar Consulta
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Columna 2: Plantillas y Ayudas (Muy educativo) -->
+                <div class="col-lg-4 border-start border-secondary ps-lg-4">
+                    <h3 class="fw-bold mb-3 text-light" style="font-size: 1.15rem;">
+                        <i class="bi bi-book-fill text-purple me-2"></i>Plantillas Cypher
+                    </h3>
+                    <p class="text-secondary" style="font-size: 0.82rem; margin-bottom: 1rem;">
+                        Haz clic en cualquiera de estas consultas típicas para cargarla en la consola de la izquierda:
+                    </p>
+
+                    <div class="d-flex flex-column gap-2">
+                        <button type="button" class="btn btn-sm btn-premium btn-premium-outline text-start justify-content-start" onclick="loadQuery(1)">
+                            <i class="bi bi-node-plus text-purple"></i> 1. Ver todos los nodos (LIMIT 25)
+                        </button>
+                        <button type="button" class="btn btn-sm btn-premium btn-premium-outline text-start justify-content-start" onclick="loadQuery(2)">
+                            <i class="bi bi-people text-purple"></i> 2. Listar conexiones amistosas (:KNOWS)
+                        </button>
+                        <button type="button" class="btn btn-sm btn-premium btn-premium-outline text-start justify-content-start" onclick="loadQuery(3)">
+                            <i class="bi bi-gem text-purple"></i> 3. Habilidades asociadas con nivel
+                        </button>
+                        <button type="button" class="btn btn-sm btn-premium btn-premium-outline text-start justify-content-start" onclick="loadQuery(4)">
+                            <i class="bi bi-magic text-purple"></i> 4. Amigos de amigos (Recomendación)
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel Inferior: Tabla de Resultados Dinámica -->
+    <div class="col-12 mb-4">
+        <div class="glass-panel p-4" style="min-height: 250px;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="fw-bold mb-0 text-light" style="font-size: 1.15rem;">
+                    <i class="bi bi-table text-purple me-2"></i>Resultados de la Consulta
+                </h3>
+                
+                @if (Model.QueryExecuted)
+                {
+                    <span class="badge rounded-pill bg-dark border border-secondary px-3 py-2 text-light" style="font-size: 0.75rem;">
+                        <i class="bi bi-stopwatch text-purple me-1"></i>Ejecutado en <strong class="text-white">@Model.ExecutionTimeMs ms</strong>
+                    </span>
+                }
+            </div>
+
+            <!-- Manejo de Errores en Cypher -->
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="alert alert-danger glass-panel border-danger text-danger p-3" role="alert" style="background: rgba(244, 63, 94, 0.12);">
+                    <h5 class="fw-bold mb-2"><i class="bi bi-bug-fill me-2"></i>Error de Sintaxis en Cypher</h5>
+                    <p class="font-monospace mb-0" style="font-size: 0.85rem;">@Model.ErrorMessage</p>
+                </div>
+            }
+            
+            <!-- Tabla de datos dinámica -->
+            @if (Model.QueryExecuted && string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                @if (Model.Rows.Count == 0)
+                {
+                    <div class="text-center py-5 text-secondary">
+                        <i class="bi bi-slash-circle" style="font-size: 2.5rem; opacity: 0.4;"></i>
+                        <p class="mt-2 mb-0">La consulta se ejecutó con éxito pero devolvió 0 registros.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-premium align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    @foreach (var col in Model.Columns)
+                                    {
+                                        <th>@col</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in Model.Rows)
+                                {
+                                    <tr>
+                                        @foreach (var col in Model.Columns)
+                                        {
+                                            <td>
+                                                @if (row.ContainsKey(col))
+                                                {
+                                                    @row[col]
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">NULL</span>
+                                                }
+                                            </td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            }
+            else if (!Model.QueryExecuted && string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="text-center py-5 text-secondary">
+                    <i class="bi bi-play-circle" style="font-size: 3rem; opacity: 0.4;"></i>
+                    <p class="mt-3 mb-0">Escribe tu consulta y presiona "Ejecutar Consulta" para ver los resultados tabulados en tiempo real.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Diccionario de consultas predefinidas
+        const queries = {
+            1: "MATCH (n) RETURN labels(n)[0] AS TipoNodo, n.name AS Nombre, n.title AS Cargo LIMIT 25",
+            2: "MATCH (p1:Person)-[r:KNOWS]-(p2:Person)\nRETURN p1.name AS Persona, r.since AS ConectadosDesde, p2.name AS ConoceA\nORDER BY Persona",
+            3: "MATCH (p:Person)-[r:HAS_SKILL]->(s:Skill)\nRETURN p.name AS Persona, p.title AS Cargo, r.proficiency AS NivelAptitud, s.name AS Tecnologia\nORDER BY Persona",
+            4: "MATCH (p:Person)-[:KNOWS]-(friend:Person)-[:KNOWS]-(fof:Person)\nWHERE p.id <> fof.id AND NOT (p)-[:KNOWS]-(fof)\nRETURN p.name AS Persona, fof.name AS SugerenciaAmistad, fof.title AS CargoSugerido, count(friend) AS AmigosEnComun, collect(friend.name) AS NombresAmigos\nORDER BY AmigosEnComun DESC\nLIMIT 5"
+        };
+
+        // Carga la consulta seleccionada en el textarea
+        function loadQuery(id) {
+            const editor = document.getElementById('cypher-editor');
+            if (queries[id]) {
+                editor.value = queries[id];
+                // Efecto de enfoque y parpadeo de brillo para indicar acción
+                editor.focus();
+                editor.classList.add('border-primary');
+                setTimeout(() => {
+                    editor.classList.remove('border-primary');
+                }, 400);
+            }
+        }
+    </script>
+}

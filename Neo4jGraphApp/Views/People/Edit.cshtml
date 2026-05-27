@@ -1,0 +1,65 @@
+@model Neo4jGraphApp.Models.Person
+@{
+    ViewData["Title"] = "Editar Perfil Persona";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="d-flex align-items-center mb-3 gap-2">
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-sm btn-premium btn-premium-outline">
+                <i class="bi bi-arrow-left"></i> Cancelar
+            </a>
+            <span class="text-secondary">| Volver a Detalles</span>
+        </div>
+
+        <div class="glass-panel p-4">
+            <h2 class="fw-bold mb-1 text-light" style="font-size: 1.6rem;">Editar Nodo de Persona</h2>
+            <p class="text-secondary mb-4" style="font-size: 0.9rem;">
+                Modifica los atributos del nodo con ID único <code>@Model.Id</code>.
+            </p>
+
+            <form asp-action="Edit" method="post" class="form-premium d-flex flex-column gap-3">
+                <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+                <input type="hidden" asp-for="Id" />
+
+                <!-- Nombre -->
+                <div>
+                    <label asp-for="Name" class="form-label mb-1">Nombre Completo</label>
+                    <input asp-for="Name" class="form-control form-control-premium" required />
+                    <span asp-validation-for="Name" class="text-danger small"></span>
+                </div>
+
+                <!-- Cargo / Puesto -->
+                <div>
+                    <label asp-for="Title" class="form-label mb-1">Cargo Profesional / Puesto</label>
+                    <input asp-for="Title" class="form-control form-control-premium" required />
+                    <span asp-validation-for="Title" class="text-danger small"></span>
+                </div>
+
+                <!-- Correo Electrónico -->
+                <div>
+                    <label asp-for="Email" class="form-label mb-1">Correo Electrónico</label>
+                    <input asp-for="Email" type="email" class="form-control form-control-premium" required />
+                    <span asp-validation-for="Email" class="text-danger small"></span>
+                </div>
+
+                <!-- Biografía -->
+                <div>
+                    <label asp-for="Bio" class="form-label mb-1">Biografía Corta</label>
+                    <textarea asp-for="Bio" rows="4" class="form-control form-control-premium" required></textarea>
+                    <span asp-validation-for="Bio" class="text-danger small"></span>
+                </div>
+
+                <!-- Botones -->
+                <div class="d-flex justify-content-end gap-2 mt-3 border-top border-secondary pt-3">
+                    <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-premium btn-premium-outline">
+                        Descartar
+                    </a>
+                    <button type="submit" class="btn btn-premium btn-premium-purple shadow">
+                        <i class="bi bi-save"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

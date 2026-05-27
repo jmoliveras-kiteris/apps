@@ -1,0 +1,285 @@
+@model Neo4jGraphApp.Models.DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard de Red de Grafos";
+}
+
+<div class="row mb-4 align-items-center">
+    <div class="col-md-8">
+        <h1 class="fw-extrabold mb-1" style="font-weight: 800; font-size: 2.5rem; background: linear-gradient(to right, #fff, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            Dashboard Profesional
+        </h1>
+        <p class="text-secondary" style="font-size: 1.1rem;">
+            Explora la potencia de las bases de datos de grafos gestionando perfiles, habilidades y conexiones en tiempo real.
+        </p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <a asp-controller="People" asp-action="Create" class="btn btn-premium btn-premium-purple shadow">
+            <i class="bi bi-person-plus-fill"></i>Agregar Persona
+        </a>
+    </div>
+</div>
+
+@if (ViewBag.IsConnected == false)
+{
+    <!-- Banner de error de conexión a Neo4j sumamente amigable -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="connection-warning-box">
+                <h4 class="text-danger fw-bold mb-3"><i class="bi bi-cloud-slash-fill me-2"></i>Base de datos Neo4j no detectada</h4>
+                <p>La aplicación no pudo establecer conexión con el servidor Neo4j en la nube (o local). <strong>¡No te preocupes!</strong> Puedes solucionar esto de la siguiente manera:</p>
+                <ol class="mb-3 text-secondary" style="font-size: 0.95rem;">
+                    <li class="mb-2"><strong>Despliega tu contenedor en Azure:</strong> Si tu despliegue en ACI o VM finalizó, asegúrate de que esté en ejecución.</li>
+                    <li class="mb-2"><strong>Configura las credenciales:</strong> Abre el archivo <code>appsettings.json</code> en tu solución y reemplaza las configuraciones con tus datos de Azure:
+                        <pre class="bg-black text-light p-3 rounded mt-2 border border-secondary" style="font-size: 0.85rem; font-family: monospace;">
+"Neo4j": {
+  "Uri": "bolt://[TU_DOMINIO_DE_AZURE]:7687",
+  "Username": "neo4j",
+  "Password": "Neo4jGraph*Azure2026!"
+}</pre>
+                    </li>
+                    <li><strong>Recarga esta página:</strong> Una vez guardado el archivo, presiona F5 en tu navegador para sincronizar el grafo.</li>
+                </ol>
+                <div class="mt-3 text-light" style="font-size: 0.85rem;">
+                    <i class="bi bi-info-circle-fill text-warning me-1"></i>Detalle técnico del error: <code>@ViewBag.ErrorMessage</code>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- KPIs del Grafo -->
+<div class="row g-4 mb-4">
+    <!-- Personas -->
+    <div class="col-md-4">
+        <div class="glass-panel glass-panel-hover stat-card purple">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-secondary fw-semibold uppercase" style="font-size: 0.8rem; letter-spacing: 0.5px;">TOTAL PERSONAS</span>
+                <i class="bi bi-people-fill text-purple" style="font-size: 1.5rem; color: var(--accent-purple);"></i>
+            </div>
+            <div class="stat-val">@Model.TotalPeopleCount</div>
+            <div class="text-secondary mt-2" style="font-size: 0.8rem;">
+                Nodos etiquetados como <code>:Person</code>
+            </div>
+        </div>
+    </div>
+    <!-- Habilidades -->
+    <div class="col-md-4">
+        <div class="glass-panel glass-panel-hover stat-card emerald">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-secondary fw-semibold uppercase" style="font-size: 0.8rem; letter-spacing: 0.5px;">TOTAL HABILIDADES</span>
+                <i class="bi bi-gem text-emerald" style="font-size: 1.5rem; color: var(--accent-emerald);"></i>
+            </div>
+            <div class="stat-val">@Model.TotalSkillsCount</div>
+            <div class="text-secondary mt-2" style="font-size: 0.8rem;">
+                Nodos etiquetados como <code>:Skill</code>
+            </div>
+        </div>
+    </div>
+    <!-- Relaciones -->
+    <div class="col-md-4">
+        <div class="glass-panel glass-panel-hover stat-card cyan">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-secondary fw-semibold uppercase" style="font-size: 0.8rem; letter-spacing: 0.5px;">RELACIONES ACTIVAS</span>
+                <i class="bi bi-share-fill text-cyan" style="font-size: 1.5rem; color: var(--accent-cyan);"></i>
+            </div>
+            <div class="stat-val">@Model.TotalConnectionsCount</div>
+            <div class="text-secondary mt-2" style="font-size: 0.8rem;">
+                Enlaces <code>:KNOWS</code> y <code>:HAS_SKILL</code>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Grafo y Panel Lateral -->
+<div class="row g-4 mb-5">
+    <!-- Visualización con Vis.js -->
+    <div class="col-lg-8">
+        <div class="glass-panel h-100 p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="fw-bold mb-0" style="font-size: 1.25rem;"><i class="bi bi-eye-fill me-2 text-purple" style="color: var(--accent-purple);"></i>Visualizador del Grafo Interactivo</h3>
+                <div class="d-flex gap-2">
+                    <span class="graph-legend-badge">
+                        <span class="legend-dot purple"></span> Personas
+                    </span>
+                    <span class="graph-legend-badge">
+                        <span class="legend-dot emerald"></span> Habilidades
+                    </span>
+                </div>
+            </div>
+            
+            <div id="graph-container">
+                @if (Model.Graph.Nodes.Count == 0)
+                {
+                    <div class="position-absolute top-50 start-50 translate-middle text-center text-secondary">
+                        <i class="bi bi-diagram-3" style="font-size: 3rem; opacity: 0.5;"></i>
+                        <p class="mt-3">El grafo está vacío. Crea personas y habilidades para verlo en acción.</p>
+                    </div>
+                }
+            </div>
+            
+            <div class="mt-3 d-flex justify-content-between align-items-center text-secondary" style="font-size: 0.8rem;">
+                <span><i class="bi bi-hand-index-thumb-fill me-1"></i>Puedes arrastrar los nodos, hacer zoom con el scroll o hacer doble clic.</span>
+                <span>Físicas: Activas</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel Lateral: Recomendaciones (Inteligencia de Grafos) -->
+    <div class="col-lg-4">
+        <div class="glass-panel h-100 p-4 d-flex flex-column">
+            <h3 class="fw-bold mb-3" style="font-size: 1.25rem;">
+                <i class="bi bi-magic me-2 text-cyan" style="color: var(--accent-cyan);"></i>Red Inteligente (Cypher)
+            </h3>
+            <p class="text-secondary" style="font-size: 0.85rem; margin-bottom: 1.5rem;">
+                Las bases de datos de grafos destacan al buscar patrones relacionales en milisegundos. Esta es una consulta Cypher de <strong>"Amigos de amigos que no conoces"</strong>:
+            </p>
+
+            <div class="flex-grow-1 overflow-auto pe-1" style="max-height: 380px;">
+                @if (Model.TopRecommendations.Count == 0)
+                {
+                    <div class="text-center text-secondary py-5 my-3 border border-dashed rounded border-secondary" style="background: rgba(0,0,0,0.15);">
+                        <i class="bi bi-shuffle" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <p class="mt-3 mb-0" style="font-size: 0.85rem;">No hay sugerencias disponibles.</p>
+                        <p class="text-secondary" style="font-size: 0.75rem; padding: 0 1rem;">Para ver sugerencias, conecta a la Persona A con la Persona B, y a la Persona B con la Persona C. ¡La Persona C le será recomendada a la Persona A!</p>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var rec in Model.TopRecommendations)
+                    {
+                        <div class="glass-panel p-3 mb-3 border-secondary" style="background: rgba(255,255,255,0.02);">
+                            <div class="d-flex align-items-start justify-content-between mb-2">
+                                <div>
+                                    <h5 class="fw-bold mb-0" style="font-size: 0.95rem; color: #fff;">@rec.TargetPersonName</h5>
+                                    <small class="text-purple" style="font-size: 0.75rem; color: var(--accent-purple);">@rec.TargetPersonTitle</small>
+                                </div>
+                                <span class="badge bg-purple rounded-pill px-2 py-1" style="font-size: 0.7rem; background-color: var(--accent-purple);">
+                                    @rec.CommonConnectionsCount amigo(s) en común
+                                </span>
+                            </div>
+                            <p class="text-secondary mb-2" style="font-size: 0.78rem;">
+                                <i class="bi bi-lightbulb text-warning me-1"></i>Sugerido para <strong>@rec.SourcePersonName</strong>.
+                            </p>
+                            <div class="border-top border-secondary pt-2 mt-2" style="font-size: 0.75rem;">
+                                <span class="text-secondary">Conectores:</span> <span class="text-light fw-medium">@rec.CommonConnectionsList</span>
+                            </div>
+                            <div class="mt-3 text-end">
+                                <a asp-controller="People" asp-action="Details" asp-route-id="@rec.SourcePersonId" class="btn btn-sm btn-premium btn-premium-outline px-2 py-1" style="font-size: 0.7rem;">
+                                    Ver Perfil
+                                </a>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- CDN de vis.js para el renderizado del grafo interactivo -->
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // 1. Obtener y serializar los datos del modelo C# a JSON
+            var nodesData = @Html.Raw(Json.Serialize(Model.Graph.Nodes));
+            var edgesData = @Html.Raw(Json.Serialize(Model.Graph.Edges));
+
+            if (!nodesData || nodesData.length === 0) return;
+
+            // 2. Mapear colores e iconos personalizados para vis.js
+            var nodes = nodesData.map(function(node) {
+                var isPerson = node.group === "Person";
+                return {
+                    id: node.id,
+                    label: node.label,
+                    title: node.title,
+                    // Estilizado según el grupo (Person vs Skill)
+                    color: {
+                        background: isPerson ? '#8b5cf6' : '#10b981',
+                        border: isPerson ? '#7c3aed' : '#059669',
+                        highlight: {
+                            background: isPerson ? '#a78bfa' : '#34d399',
+                            border: isPerson ? '#8b5cf6' : '#10b981'
+                        }
+                    },
+                    shape: isPerson ? 'dot' : 'diamond',
+                    size: isPerson ? 20 : 15,
+                    font: {
+                        color: '#f3f4f6',
+                        face: 'Outfit, sans-serif',
+                        size: 14,
+                        strokeWidth: 0 // Sin contorno
+                    }
+                };
+            });
+
+            var edges = edgesData.map(function(edge) {
+                var isKnows = edge.label === "KNOWS";
+                return {
+                    from: edge.from,
+                    to: edge.to,
+                    label: edge.label,
+                    title: edge.title,
+                    arrows: edge.arrows,
+                    color: {
+                        color: isKnows ? '#06b6d4' : '#6b7280',
+                        highlight: '#22d3ee',
+                        hover: '#22d3ee'
+                    },
+                    font: {
+                        color: '#9ca3af',
+                        face: 'Outfit, sans-serif',
+                        size: 9,
+                        strokeWidth: 3,
+                        strokeColor: '#0a0d1a'
+                    },
+                    width: 2,
+                    smooth: {
+                        type: 'continuous'
+                    }
+                };
+            });
+
+            // 3. Crear contenedor y configurar opciones del grafo
+            var container = document.getElementById('graph-container');
+            var data = {
+                nodes: new vis.DataSet(nodes),
+                edges: new vis.DataSet(edges)
+            };
+            
+            var options = {
+                physics: {
+                    stabilization: true,
+                    barnesHut: {
+                        gravitationalConstant: -2000,
+                        centralGravity: 0.3,
+                        springLength: 95,
+                        springConstant: 0.04
+                    }
+                },
+                interaction: {
+                    hover: true,
+                    tooltipDelay: 200,
+                    zoomView: true
+                }
+            };
+
+            // 4. Inicializar la red
+            var network = new vis.Network(container, data, options);
+
+            // Redireccionar al hacer doble clic en un nodo de persona
+            network.on("doubleClick", function (params) {
+                if (params.nodes.length > 0) {
+                    var clickedNodeId = params.nodes[0];
+                    // Verificar si es un nodo de persona (las personas son circulares en nuestro mapeo)
+                    var foundNode = nodesData.find(n => n.id === clickedNodeId);
+                    if (foundNode && foundNode.group === "Person") {
+                        window.location.href = '/People/Details/' + clickedNodeId;
+                    }
+                }
+            });
+        });
+    </script>
+}
